@@ -183,4 +183,27 @@ describe "Resque::Failure::RedisMultiQueue" do
 
     assert_equal expected_ids, ids
   end
+
+  it 'stores the failure_id assigned by Resque::Failure.create' do
+    with_failure_backend Resque::Failure::RedisMultiQueue do
+      Resque::Failure.create(:exception => exception, :worker => worker,
+                             :queue => queue, :payload => payload)
+    end
+
+    failure = Resque::Failure::RedisMultiQueue.all(0, 1, Resque::Failure.failure_queue_name(queue))
+    refute_nil failure['failure_id']
+    assert_match(/\A\h{8}-\h{4}-\h{4}-\h{4}-\h{12}\z/, failure['failure_id'])
+  end
+
+  it 'stores no failure_id at all when generation is disabled' do
+    with_failure_id_generation false do
+      with_failure_backend Resque::Failure::RedisMultiQueue do
+        Resque::Failure.create(:exception => exception, :worker => worker,
+                               :queue => queue, :payload => payload)
+      end
+    end
+
+    failure = Resque::Failure::RedisMultiQueue.all(0, 1, Resque::Failure.failure_queue_name(queue))
+    assert_equal %w(failed_at payload exception error backtrace worker queue), failure.keys
+  end
 end

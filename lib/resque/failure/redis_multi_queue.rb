@@ -22,6 +22,7 @@ module Resque
           :worker    => worker.to_s,
           :queue     => queue
         }
+        data[:failure_id] = failure_id if failure_id
         data = Resque.encode(data)
         data_store.push_to_failed_queue(data,Resque::Failure.failure_queue_name(queue))
       end

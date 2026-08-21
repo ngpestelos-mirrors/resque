@@ -17,11 +17,16 @@ module Resque
       # The payload object associated with the failed job
       attr_accessor :payload
 
+      # A unique identifier for this failure, shared by every backend that
+      # accepts one. Nil when generation is turned off.
+      attr_accessor :failure_id
+
       def initialize(exception, worker, queue, payload)
         @exception = exception
         @worker    = worker
         @queue     = queue
         @payload   = payload
+        @failure_id = SecureRandom.uuid if Resque::Failure.generate_failure_ids?
       end
 
       # When a job fails, a new instance of your Failure backend is created

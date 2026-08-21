@@ -9,12 +9,33 @@ module Resque
     # Creates a new failure, which is delegated to the appropriate backend.
     #
     # Expects a hash with the following keys:
-    #   :exception - The Exception object
-    #   :worker    - The Worker object who is reporting the failure
-    #   :queue     - The string name of the queue from which the job was pulled
-    #   :payload   - The job's payload
+    #   :exception  - The Exception object
+    #   :worker     - The Worker object who is reporting the failure
+    #   :queue      - The string name of the queue from which the job was pulled
+    #   :payload    - The job's payload
+    #   :failure_id - Optional id to record this failure under, in place of the
+    #                 one the backend generates for itself.
     def self.create(options = {})
-      backend.new(*options.values_at(:exception, :worker, :queue, :payload)).save
+      failure = backend.new(*options.values_at(:exception, :worker, :queue, :payload))
+
+      # Backends are not required to accept an id.
+      if options[:failure_id] && failure.respond_to?(:failure_id=)
+        failure.failure_id = options[:failure_id]
+      end
+
+      failure.save
+    end
+
+    class << self
+      attr_writer :generate_failure_ids
+
+      # Whether failures are given a `failure_id` when they are built.
+      # Defaults to true. An explicit `:failure_id` passed to `create` sets the
+      # `failure_id` even if automatic generation is disabled.
+      def generate_failure_ids?
+        return true if @generate_failure_ids.nil?
+        !!@generate_failure_ids
+      end
     end
 
     #

@@ -431,6 +431,11 @@ Resque::Failure::Multiple.classes = [Resque::Failure::Redis, Resque::Failure::Ai
 Resque::Failure.backend = Resque::Failure::Multiple
 ```
 
+Each failure is recorded with a unique `failure_id` shared by every backend that
+accepts one, so the same failure can be correlated across them. Failures are
+still addressed by index; the id is additive metadata. See
+[docs/FAILURE_IDS.md](https://github.com/resque/resque/blob/master/docs/FAILURE_IDS.md).
+
 Keep this in mind when writing your jobs: you may want to throw
 exceptions you would not normally throw in order to assist debugging.
 

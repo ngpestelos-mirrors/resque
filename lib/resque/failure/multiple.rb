@@ -19,7 +19,10 @@ module Resque
       end
 
       def save
-        @backends.each(&:save)
+        @backends.each do |backend|
+          backend.failure_id = failure_id if backend.respond_to?(:failure_id=)
+          backend.save
+        end
       end
 
       # The number of failures.

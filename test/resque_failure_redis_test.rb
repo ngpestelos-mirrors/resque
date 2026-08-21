@@ -98,4 +98,55 @@ describe "Resque::Failure::Redis" do
     assert_equal 5, num_iterations
   end
 
+  it 'stores the failure_id assigned by Resque::Failure.create' do
+    with_failure_backend Resque::Failure::Redis do
+      Resque::Failure.create(:exception => exception, :worker => worker,
+                             :queue => queue, :payload => payload)
+    end
+
+    failure = Resque::Failure::Redis.all(0)
+    refute_nil failure['failure_id']
+    assert_match(/\A\h{8}-\h{4}-\h{4}-\h{4}-\h{12}\z/, failure['failure_id'])
+  end
+
+  it 'stores a failure_id for backends built outside Resque::Failure.create' do
+    Resque::Failure::Redis.new(exception, worker, queue, payload).save
+
+    assert_match(/\A\h{8}-\h{4}-\h{4}-\h{4}-\h{12}\z/,
+                 Resque::Failure::Redis.all(0)['failure_id'])
+  end
+
+  it 'stores a caller supplied failure_id' do
+    with_failure_backend Resque::Failure::Redis do
+      Resque::Failure.create(:exception => exception, :worker => worker,
+                             :queue => queue, :payload => payload,
+                             :failure_id => 'caller-supplied-id')
+    end
+
+    assert_equal 'caller-supplied-id', Resque::Failure::Redis.all(0)['failure_id']
+  end
+
+  it 'gives each failure its own failure_id' do
+    with_failure_backend Resque::Failure::Redis do
+      2.times do
+        Resque::Failure.create(:exception => exception, :worker => worker,
+                               :queue => queue, :payload => payload)
+      end
+    end
+
+    ids = Resque::Failure::Redis.all(0, 2).map { |failure| failure['failure_id'] }
+    assert_equal 2, ids.compact.uniq.size
+  end
+
+  it 'stores no failure_id at all when generation is disabled' do
+    with_failure_id_generation false do
+      with_failure_backend Resque::Failure::Redis do
+        Resque::Failure.create(:exception => exception, :worker => worker,
+                               :queue => queue, :payload => payload)
+      end
+    end
+
+    assert_equal %w(failed_at payload exception error backtrace worker queue),
+                 Resque::Failure::Redis.all(0).keys
+  end
 end

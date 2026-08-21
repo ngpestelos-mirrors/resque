@@ -193,6 +193,14 @@ ensure
   Resque::Failure.backend = previous_backend
 end
 
+def with_failure_id_generation(generate, &block)
+  previous = Resque::Failure.generate_failure_ids?
+  Resque::Failure.generate_failure_ids = generate
+  yield block
+ensure
+  Resque::Failure.generate_failure_ids = previous
+end
+
 require 'time'
 
 class Time

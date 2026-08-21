@@ -1,6 +1,7 @@
 require 'mono_logger'
 require 'redis/namespace'
 require 'forwardable'
+require 'securerandom'
 
 require 'resque/version'
 
